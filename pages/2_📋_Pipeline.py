@@ -15,43 +15,63 @@ def _is_same_value(edited_value, original_value):
 st.set_page_config(page_title="Pipeline", page_icon="📋")
 require_login()
 
-client = get_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+try:
+    client = get_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+except Exception as e:
+    st.error(f"Impossibile caricare i dati: {e}")
+    st.stop()
 
 st.title("Pipeline sponsor")
 
 stato_filter = st.selectbox("Filtra per stato", ["Tutti"] + STATI)
-companies = list_companies(client, stato_filter=None if stato_filter == "Tutti" else stato_filter)
+settore_filter = st.text_input("Filtra per settore (testo libero)")
+
+try:
+    companies = list_companies(client, stato_filter=None if stato_filter == "Tutti" else stato_filter)
+except Exception as e:
+    st.error(f"Impossibile caricare i dati: {e}")
+    st.stop()
 
 df = pd.DataFrame(companies)
-edited_df = st.data_editor(
-    df,
-    column_config={"stato": st.column_config.SelectboxColumn("stato", options=STATI)},
-    disabled=["id", "created_at", "updated_at"],
-    num_rows="fixed",
-    use_container_width=True,
-    key="pipeline_editor",
-)
+if settore_filter:
+    df = df[df["settore"].str.contains(settore_filter, case=False, na=False)]
 
-if st.button("Salva modifiche"):
-    original_by_id = {row["id"]: row for row in companies}
-    for _, edited_row in edited_df.iterrows():
-        original = original_by_id.get(edited_row["id"], {})
-        changed = {
-            k: edited_row[k]
-            for k in edited_row.index
-            if k not in ("id", "created_at", "updated_at") and not _is_same_value(edited_row[k], original.get(k))
-        }
-        if changed:
-            update_company(client, int(edited_row["id"]), **changed)
-    st.success("Modifiche salvate.")
-    st.rerun()
+if df.empty:
+    st.info("Nessuna azienda trovata per questo filtro.")
+else:
+    edited_df = st.data_editor(
+        df,
+        column_config={"stato": st.column_config.SelectboxColumn("stato", options=STATI)},
+        disabled=["id", "created_at", "updated_at"],
+        num_rows="fixed",
+        use_container_width=True,
+        key="pipeline_editor",
+    )
 
-st.download_button(
-    "Esporta CSV",
-    df.to_csv(index=False).encode("utf-8"),
-    file_name="companies_export.csv",
-    mime="text/csv",
-)
+    if st.button("Salva modifiche"):
+        original_by_id = {row["id"]: row for row in companies}
+        try:
+            for _, edited_row in edited_df.iterrows():
+                original = original_by_id.get(edited_row["id"], {})
+                changed = {
+                    k: (None if pd.isna(edited_row[k]) else edited_row[k])
+                    for k in edited_row.index
+                    if k not in ("id", "created_at", "updated_at")
+                    and not _is_same_value(edited_row[k], original.get(k))
+                }
+                if changed:
+                    update_company(client, int(edited_row["id"]), **changed)
+            st.success("Modifiche salvate.")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Errore nel salvataggio: {e}")
+
+    st.download_button(
+        "Esporta CSV",
+        df.to_csv(index=False).encode("utf-8"),
+        file_name="companies_export.csv",
+        mime="text/csv",
+    )
 
 st.divider()
 st.subheader("Aggiungi azienda")

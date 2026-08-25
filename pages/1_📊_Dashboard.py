@@ -6,8 +6,12 @@ from db import get_client, get_stats
 st.set_page_config(page_title="Dashboard", page_icon="📊")
 require_login()
 
-client = get_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
-stats = get_stats(client)
+try:
+    client = get_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+    stats = get_stats(client)
+except Exception as e:
+    st.error(f"Impossibile caricare i dati: {e}")
+    st.stop()
 
 st.title("Dashboard")
 st.metric("Totale aziende", stats["totale"])
