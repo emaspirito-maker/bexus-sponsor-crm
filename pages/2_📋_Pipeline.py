@@ -41,7 +41,31 @@ if df.empty:
 else:
     edited_df = st.data_editor(
         df,
-        column_config={"stato": st.column_config.SelectboxColumn("stato", options=STATI)},
+        column_order=[
+            "nome_azienda",
+            "settore",
+            "contatto_nome",
+            "contatto_ruolo",
+            "contatto_email_linkedin",
+            "stato",
+            "canale_primo_contatto",
+            "pacchetto_tier",
+            "valore",
+            "data_ultimo_contatto",
+            "prossimo_step",
+            "note",
+            "id",
+            "created_at",
+            "updated_at",
+        ],
+        column_config={
+            "stato": st.column_config.SelectboxColumn("stato", options=STATI),
+            "contatto_nome": st.column_config.TextColumn("Contatto (nome cognome)"),
+            "contatto_ruolo": st.column_config.TextColumn("Ruolo"),
+            "contatto_email_linkedin": st.column_config.LinkColumn(
+                "LinkedIn contatto", display_text="Apri profilo"
+            ),
+        },
         disabled=["id", "created_at", "updated_at"],
         num_rows="fixed",
         use_container_width=True,
@@ -78,6 +102,9 @@ st.subheader("Aggiungi azienda")
 with st.form("add_company_form", clear_on_submit=True):
     nome = st.text_input("Nome azienda *")
     settore = st.text_input("Settore")
+    contatto_nome = st.text_input("Contatto (nome cognome)")
+    contatto_ruolo = st.text_input("Ruolo del contatto")
+    contatto_email_linkedin = st.text_input("LinkedIn del contatto (URL profilo)")
     stato_iniziale = st.selectbox("Stato iniziale", STATI, index=STATI.index("da_verificare"))
     prossimo_step = st.text_input("Prossimo step")
     note = st.text_area("Note")
@@ -91,6 +118,9 @@ with st.form("add_company_form", clear_on_submit=True):
                     client,
                     nome.strip(),
                     settore=settore or None,
+                    contatto_nome=contatto_nome or None,
+                    contatto_ruolo=contatto_ruolo or None,
+                    contatto_email_linkedin=contatto_email_linkedin or None,
                     stato=stato_iniziale,
                     prossimo_step=prossimo_step or None,
                     note=note or None,
