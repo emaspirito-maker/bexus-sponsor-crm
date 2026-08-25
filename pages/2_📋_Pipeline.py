@@ -33,8 +33,8 @@ except Exception as e:
     st.stop()
 
 df = pd.DataFrame(companies)
-if settore_filter:
-    df = df[df["settore"].str.contains(settore_filter, case=False, na=False)]
+if not df.empty and settore_filter:
+    df = df[df["settore"].str.contains(settore_filter, case=False, na=False, regex=False)]
 
 if df.empty:
     st.info("Nessuna azienda trovata per questo filtro.")
