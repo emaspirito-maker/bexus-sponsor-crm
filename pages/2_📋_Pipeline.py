@@ -4,6 +4,14 @@ import streamlit as st
 from auth import require_login
 from db import STATI, add_company, get_client, list_companies, update_company
 
+
+def _is_same_value(edited_value, original_value):
+    """Compare values, treating NaN and None as equal (Streamlit round-trip artifact)."""
+    if pd.isna(edited_value) and original_value is None:
+        return True
+    return edited_value == original_value
+
+
 st.set_page_config(page_title="Pipeline", page_icon="📋")
 require_login()
 
@@ -31,7 +39,7 @@ if st.button("Salva modifiche"):
         changed = {
             k: edited_row[k]
             for k in edited_row.index
-            if k not in ("id", "created_at", "updated_at") and edited_row[k] != original.get(k)
+            if k not in ("id", "created_at", "updated_at") and not _is_same_value(edited_row[k], original.get(k))
         }
         if changed:
             update_company(client, int(edited_row["id"]), **changed)
